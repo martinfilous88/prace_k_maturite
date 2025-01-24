@@ -1,0 +1,31 @@
+@startuml ActivityDiagram
+
+skinparam activityShape roundbox
+
+start
+
+:Přihlášení uživatele;
+
+if (Autentizace úspěšná?) then (ano)
+  :Načtení herního katalogu;
+  
+  if (Výběr hry) then (ano)
+    :Zobrazení detailu hry;
+    
+    if (Nákup hry?) then (ano)
+      :Přidání hry do košíku;
+      :Provedení platby;
+      :Aktivace hry v knihovně;
+    else (ne)
+      :Návrat do katalogu;
+    endif
+  else (ne)
+    :Procházení katalogu;
+  endif
+else (ne)
+  :Zobrazení chyby přihlášení;
+endif
+
+end
+
+@enduml

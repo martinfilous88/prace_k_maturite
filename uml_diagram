@@ -1,0 +1,13 @@
+// PIIS UML Diagram
+digraph {
+	rankdir=TB size="8,5"
+	node [fillcolor=lightblue shape=record style=filled]
+	Uzivatel [label="{Uživatel|+ id: int\l+ jméno: string\l+ email: string\l|+ přihlásit()\l+ odhlásit()\l}"]
+	System [label="{Systém|+ konfigurace: dict\l|+ inicializovat()\l+ spustit()\l+ zastavit()\l}"]
+	Zaznam [label="{Záznam|+ id: int\l+ datum: datetime\l+ popis: string\l|+ vytvořit()\l+ aktualizovat()\l+ smazat()\l}"]
+	Opravneni [label="{Oprávnění|+ úroveň: int\l|+ ověřit()\l+ nastavit()\l}"]
+	Uzivatel -> Zaznam [label="vytváří"]
+	Uzivatel -> Opravneni [label="má"]
+	System -> Zaznam [label=spravuje]
+	System -> Uzivatel [label="řídí"]
+}

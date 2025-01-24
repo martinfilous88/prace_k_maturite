@@ -1,0 +1,41 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+title PIIS - Informační a Řídicí Systém
+
+class Uživatel {
+  - id: int
+  - jméno: string
+  - email: string
+  + přihlásit()
+  + odhlásit()
+}
+
+class Systém {
+  - konfigurace: Dictionary
+  + inicializovat()
+  + spustit()
+  + zastavit()
+}
+
+class Záznam {
+  - id: int
+  - datum: DateTime
+  - popis: string
+  + vytvořit()
+  + aktualizovat()
+  + smazat()
+}
+
+class Oprávnění {
+  - úroveň: int
+  + ověřit()
+  + nastavit()
+}
+
+Uživatel "1" -- "0..*" Záznam : vytváří
+Uživatel "1" -- "1" Oprávnění : má
+Systém "1" -- "0..*" Záznam : spravuje
+Systém "1" -- "0..*" Uživatel : řídí
+
+@enduml

@@ -1,0 +1,82 @@
+@startuml GamePlatformArchitecture
+
+!theme plain
+skinparam classAttributeIconSize 0
+
+package "Frontend" {
+    class AuthContext {
+        -currentUser: UserProfile
+        +login(email: string, password: string)
+        +signup(email: string, password: string)
+        +logout()
+        +updateUser(userData: Partial<UserProfile>)
+    }
+
+    class HomePage {
+        +render(): React.Element
+        -renderGameSection()
+        -renderAccountSection()
+    }
+
+    class AccountPage {
+        +render(): React.Element
+        -renderUserProfile()
+        -renderWheelOfFortune()
+    }
+
+    class SpaceColonyGame {
+        -gameState: GameState
+        +startGame()
+        +updateGameProgress()
+        +endGame()
+    }
+
+    class WheelOfFortune {
+        -rotation: number
+        -isSpinning: boolean
+        +spinWheel()
+        -calculateWinningSegment()
+    }
+}
+
+package "Types" {
+    class UserProfile {
+        +id: string
+        +username: string
+        +email: string
+        +totalSpend: number
+        +level: number
+        +ownedGames: Game[]
+        +wheelPrizes: WheelPrize
+    }
+
+    class Game {
+        +id: string
+        +name: string
+        +description: string
+        +price: number
+    }
+
+    class WheelPrize {
+        +type: string
+        +value: string
+        +description: string
+    }
+}
+
+package "Authentication" {
+    class FirebaseAuth {
+        +signInWithEmailAndPassword()
+        +createUserWithEmailAndPassword()
+        +signOut()
+    }
+}
+
+AuthContext --> UserProfile: manages
+HomePage --> SpaceColonyGame: contains
+AccountPage --> WheelOfFortune: contains
+AuthContext --> FirebaseAuth: uses
+UserProfile *-- WheelPrize: has
+UserProfile *-- Game: owns
+
+@enduml

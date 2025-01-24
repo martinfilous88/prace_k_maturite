@@ -1,0 +1,109 @@
+@startuml ProjectArchitecture
+
+skinparam classAttributeIconSize 0
+
+package "Frontend Components" {
+    class App {
+        - router: Router
+        - authContext: AuthContext
+        + render(): ReactElement
+    }
+
+    package "Pages" {
+        class CartPage
+        class SpaceColonyGameDetailPage
+        class LoginPage
+        class RegisterPage
+        class ProfilePage
+        class DashboardPage
+    }
+
+    package "Components" {
+        class CartModal
+        class GameCard
+        class NavigationBar
+        class AuthForm
+    }
+}
+
+package "Contexts" {
+    class AuthContext {
+        - user: User
+        + login(credentials): void
+        + logout(): void
+        + register(userData): void
+    }
+}
+
+package "Stores" {
+    class CartStore {
+        - items: CartItem[]
+        + addToCart(item): void
+        + removeFromCart(itemId): void
+        + clearCart(): void
+    }
+    
+    class GameStore {
+        - games: Game[]
+        + fetchGames(): void
+        + getGameById(id): Game
+    }
+}
+
+package "Types" {
+    class User {
+        + id: string
+        + email: string
+        + username: string
+    }
+    
+    class Game {
+        + id: string
+        + title: string
+        + description: string
+        + price: number
+    }
+    
+    class CartItem {
+        + gameId: string
+        + quantity: number
+    }
+}
+
+package "Services" {
+    class AuthService {
+        + login(email, password): Promise<User>
+        + register(userData): Promise<User>
+        + getCurrentUser(): User
+    }
+    
+    class GameService {
+        + fetchGames(): Promise<Game[]>
+        + getGameDetails(gameId): Promise<Game>
+    }
+}
+
+package "Utilities" {
+    class SupabaseClient {
+        + authenticate(credentials): Promise
+        + query(table, conditions): Promise
+    }
+}
+
+' Relationships
+App --> AuthContext : uses
+App --> CartStore : manages
+App --> GameStore : manages
+
+CartPage --> CartStore : displays
+CartPage --> CartModal : renders
+SpaceColonyGameDetailPage --> GameStore : fetches data
+
+AuthContext --> AuthService : authenticates
+CartStore --> CartItem : contains
+GameStore --> Game : manages
+
+AuthService --> SupabaseClient : authenticates
+GameService --> SupabaseClient : fetches data
+
+@enduml

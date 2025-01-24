@@ -1,0 +1,105 @@
+@startuml DetailedProjectArchitecture
+
+skinparam classAttributeIconSize 0
+skinparam linetype polyline
+skinparam nodesep 20
+skinparam ranksep 20
+
+package "React Router" {
+    class Router {
+        + routes: Route[]
+        + navigate(path: string)
+    }
+    class Route {
+        + path: string
+        + element: ReactElement
+    }
+}
+
+package "Authentication" {
+    class AuthContext {
+        - currentUser: UserProfile
+        + signup(email, password)
+        + login(email, password)
+        + logout()
+        + updateUser(userData)
+    }
+    
+    class UserProfile {
+        + id: string
+        + username: string
+        + email: string
+        + totalSpend: number
+        + level: number
+        + ownedGames: Game[]
+    }
+}
+
+package "Pages" {
+    class HomePage
+    class StorePage
+    class LibraryPage
+    class CartPage
+    class GameDetailPage
+    class AccountPage
+}
+
+package "Components" {
+    class Header
+    class Footer
+    class LoginForm
+    class SignupForm
+    class PrivateRoute
+    class CartModal
+}
+
+package "Games" {
+    class SpaceColonyGame {
+        + gameState: GameState
+        + startGame()
+        + endGame()
+    }
+}
+
+package "Services" {
+    class SupabaseClient {
+        + authenticate(credentials)
+        + fetchGames()
+        + updateUserProfile()
+    }
+}
+
+package "Types" {
+    class Game {
+        + id: string
+        + title: string
+        + price: number
+        + description: string
+    }
+}
+
+' Relationships
+App --> Router : uses
+App --> AuthContext : provides authentication
+App --> Header : contains
+App --> Footer : contains
+
+Router --> Route : defines routes
+Route --> HomePage : links
+Route --> StorePage : links
+Route --> LibraryPage : links
+Route --> CartPage : links
+Route --> GameDetailPage : links
+Route --> SpaceColonyGame : links
+
+AuthContext --> UserProfile : manages
+AuthContext --> SupabaseClient : authenticates
+
+LoginForm --> AuthContext : uses
+SignupForm --> AuthContext : uses
+PrivateRoute --> AuthContext : checks authentication
+
+CartPage --> CartModal : contains
+SpaceColonyGame --> Game : references
+
+@enduml
