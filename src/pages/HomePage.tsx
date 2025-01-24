@@ -34,6 +34,14 @@ const categoryIcons = {
   </svg>
 };
 
+const categories = [
+  { id: 'vse', label: 'Vše', icon: categoryIcons['vse'] },
+  { id: 'doporučené', label: 'Doporučené', icon: categoryIcons['doporučené'] },
+  { id: 'novinky', label: 'Novinky', icon: categoryIcons['novinky'] },
+  { id: 'slevy', label: 'Slevy', icon: categoryIcons['slevy'] },
+  { id: 'připravujeme', label: 'Připravujeme', icon: categoryIcons['připravujeme'] }
+];
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: { 
@@ -57,16 +65,45 @@ const itemVariants = {
 
 export function HomePage() {
   const [games, setGames] = useState<Game[]>([]);
+  const [filteredGames, setFilteredGames] = useState<Game[]>([]);
   const [activeCategory, setActiveCategory] = useState('vse');
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Stavy pro filtry
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedAgeRatings, setSelectedAgeRatings] = useState<number[]>([]);
+  const [priceRange, setPriceRange] = useState({ min: 199, max: 599 });
+
+  // Funkce pro aplikaci filtrů
+  const applyFilters = () => {
+    const filtered = FEATURED_GAMES.filter(game => {
+      const genreMatch = selectedGenres.length === 0 || selectedGenres.includes(game.genre);
+      const ageRatingMatch = selectedAgeRatings.length === 0 || selectedAgeRatings.includes(game.ageRating);
+      const priceMatch = game.price >= priceRange.min && game.price <= priceRange.max;
+
+      return genreMatch && ageRatingMatch && priceMatch;
+    });
+
+    setFilteredGames(filtered);
+    setIsFilterOpen(false);
+  };
+
+  // Funkce pro reset filtrů
+  const resetFilters = () => {
+    setSelectedGenres([]);
+    setSelectedAgeRatings([]);
+    setPriceRange({ min: 199, max: 599 });
+    setFilteredGames(FEATURED_GAMES);
+  };
 
   useEffect(() => {
     const fetchAllGames = async () => {
       try {
         const allGames = FEATURED_GAMES;
         setGames(allGames || []);
+        setFilteredGames(allGames || []);
       } catch (err) {
         console.error('Chyba při načítání her:', err);
       } finally {
@@ -105,26 +142,7 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Kategorie menu */}
-      <div className="container mx-auto px-4 mb-12">
-        <div className="flex justify-center space-x-4">
-          {Object.entries(categoryIcons).map(([category, Icon]) => (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                activeCategory === category 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
-            >
-              {Icon}
-              <span>{category}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
+      {/* Filtry her */}
       <section className="container mx-auto px-4 mt-6 mb-12">
         <div className="flex justify-center">
           <button 
@@ -132,28 +150,106 @@ export function HomePage() {
             className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-600 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 6h16"/>
-              <path d="M4 12h16"/>
-              <path d="M4 18h16"/>
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
             </svg>
-            Filtry
+            Filtry her
           </button>
         </div>
 
         {isFilterOpen && (
           <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-xl border border-gray-700/50 shadow-lg mt-4">
-            {/* Filtr obsah zůstává stejný */}
+            <div className="grid grid-cols-3 gap-6">
+              {/* Žánry */}
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-4">Žánry</h3>
+                {['RPG', 'Simulace', 'Action', 'Survival', 'FPS', 'Strategie'].map(genre => (
+                  <label key={genre} className="flex items-center space-x-2 text-gray-300 mb-2">
+                    <input 
+                      type="checkbox" 
+                      className="form-checkbox text-blue-500"
+                      checked={selectedGenres.includes(genre)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedGenres([...selectedGenres, genre]);
+                        } else {
+                          setSelectedGenres(selectedGenres.filter(g => g !== genre));
+                        }
+                      }}
+                    />
+                    <span>{genre}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Věkové kategorie */}
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-4">Věk</h3>
+                {[3, 7, 12, 16, 18].map(age => (
+                  <label key={age} className="flex items-center space-x-2 text-gray-300 mb-2">
+                    <input 
+                      type="checkbox" 
+                      className="form-checkbox text-blue-500"
+                      checked={selectedAgeRatings.includes(age)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedAgeRatings([...selectedAgeRatings, age]);
+                        } else {
+                          setSelectedAgeRatings(selectedAgeRatings.filter(a => a !== age));
+                        }
+                      }}
+                    />
+                    <span>{age}+</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Cenový rozsah */}
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-4">Cena</h3>
+                <div className="flex items-center space-x-4">
+                  <input 
+                    type="range" 
+                    min="199" 
+                    max="599" 
+                    step="50" 
+                    value={priceRange.max}
+                    onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) })}
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex justify-between text-gray-400 text-sm mt-2">
+                  <span>199 Kč</span>
+                  <span>{priceRange.max} Kč</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Tlačítka pro aplikaci a reset filtrů */}
+            <div className="flex justify-end space-x-4 mt-6">
+              <button
+                onClick={resetFilters}
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Resetovat filtry
+              </button>
+              <button
+                onClick={applyFilters}
+                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+              >
+                Použít filtry
+              </button>
+            </div>
           </div>
         )}
       </section>
 
+      {/* Seznam her */}
       <section className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-8 text-center text-white tracking-wider">
           Naše Herní Kolekce
         </h1>
-        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 perspective-1000">
-          {games.map((game, index) => (
+          {filteredGames.map((game, index) => (
             <motion.div 
               key={game.id}
               initial={{ opacity: 0, y: 50 }}

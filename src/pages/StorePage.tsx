@@ -9,6 +9,7 @@ export function StorePage() {
   const { addToCart } = useCart();
   const [sortBy, setSortBy] = useState<'price' | 'name'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [showFilters, setShowFilters] = useState(false);
 
   const sortedGames = [...FEATURED_GAMES].sort((a, b) => {
     if (sortBy === 'price') {
@@ -44,54 +45,61 @@ export function StorePage() {
             >
               {sortOrder === 'asc' ? <SortAsc className="h-5 w-5" /> : <SortDesc className="h-5 w-5" />}
             </button>
+
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="p-2 bg-gray-800 rounded-lg text-gray-400 hover:text-white"
+            >
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </button>
           </div>
         </div>
 
         <div className="grid grid-cols-4 gap-6">
-          {/* Filters Sidebar */}
-          <div className="col-span-1 bg-gray-800 p-4 rounded-lg h-fit">
-            <h2 className="text-xl font-semibold text-white mb-4">Filters</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-white font-medium mb-2">Categories</h3>
-                {['Action', 'Adventure', 'Racing', 'Platformer', 'Family'].map(category => (
-                  <label key={category} className="flex items-center space-x-2 text-gray-300 mb-2">
-                    <input type="checkbox" className="form-checkbox" />
-                    <span>{category}</span>
-                  </label>
-                ))}
-              </div>
+          {showFilters && (
+            <div className="col-span-1 bg-gray-800 p-4 rounded-lg h-fit">
+              <h2 className="text-xl font-semibold text-white mb-4">Filters</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-white font-medium mb-2">Categories</h3>
+                  {['Action', 'Adventure', 'Racing', 'Platformer', 'Family'].map(category => (
+                    <label key={category} className="flex items-center space-x-2 text-gray-300 mb-2">
+                      <input type="checkbox" className="form-checkbox" />
+                      <span>{category}</span>
+                    </label>
+                  ))}
+                </div>
 
-              <div>
-                <h3 className="text-white font-medium mb-2">Age Rating</h3>
-                {[6, 7, 8, 12, 16, 18].map(age => (
-                  <label key={age} className="flex items-center space-x-2 text-gray-300 mb-2">
-                    <input type="checkbox" className="form-checkbox" />
-                    <span>{age}+</span>
-                  </label>
-                ))}
-              </div>
+                <div>
+                  <h3 className="text-white font-medium mb-2">Age Rating</h3>
+                  {[6, 7, 8, 12, 16, 18].map(age => (
+                    <label key={age} className="flex items-center space-x-2 text-gray-300 mb-2">
+                      <input type="checkbox" className="form-checkbox" />
+                      <span>{age}+</span>
+                    </label>
+                  ))}
+                </div>
 
-              <div>
-                <h3 className="text-white font-medium mb-2">Price Range</h3>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="20" 
-                  step="5"
-                  className="w-full"
-                />
-                <div className="flex justify-between text-gray-400 text-sm">
-                  <span>$0</span>
-                  <span>$20</span>
+                <div>
+                  <h3 className="text-white font-medium mb-2">Price Range</h3>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="20" 
+                    step="5"
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-gray-400 text-sm">
+                    <span>$0</span>
+                    <span>$20</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Games Grid */}
-          <div className="col-span-3">
+          <div className={`${showFilters ? 'col-span-3' : 'col-span-4'}`}>
             <GameGrid 
               games={sortedGames} 
               onGameClick={(game) => addToCart(game)}
