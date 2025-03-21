@@ -16,23 +16,31 @@ export function SignupForm() {
     e.preventDefault();
 
     if (password.length < 6) {
-      toast.error('Password must be at least 6 characters long');
+      toast.error('Heslo musí mít alespoň 6 znaků');
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error('Hesla se neshodují');
       return;
     }
 
     try {
       setLoading(true);
+      console.log('Začínám registraci s emailem:', email);
       await signup(email, password);
-      toast.success('Account created successfully!');
+      toast.success('Účet byl úspěšně vytvořen!');
       navigate('/');
     } catch (error: any) {
-      console.error('Signup error:', error);
-      toast.error(error.message || 'Failed to create an account');
+      console.error('Chyba při registraci:', error);
+      // Podrobnější zpracování chyb
+      if (error.message?.includes('network')) {
+        toast.error('Problém s připojením k serveru. Zkontrolujte své internetové připojení.');
+      } else if (error.message?.includes('already registered')) {
+        toast.error('Tento email je již registrován. Zkuste se přihlásit.');
+      } else {
+        toast.error(error.message || 'Nepodařilo se vytvořit účet');
+      }
     } finally {
       setLoading(false);
     }

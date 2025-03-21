@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -8,36 +8,30 @@ export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, currentUser } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser) {
+      console.log('Uživatel již přihlášen, přesměrování na domovskou stránku');
+      navigate('/');
+    }
+  }, [currentUser, navigate]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     
     try {
       setLoading(true);
-      const { data, error } = await login(email, password);
-
-      if (error) {
-        toast.error('Nepodařilo se přihlásit. Zkontrolujte přihlašovací údaje.');
-        return;
-      }
-
-      // Zde přidáme kontrolu admin uživatele
-      const isAdmin = data.user?.email === 'admin@example.com'; // Nahraďte skutečným admin emailem
-
-      if (isAdmin) {
-        toast.success('Přihlášení správce úspěšné!');
-        navigate('/admin/dashboard');
-      } else {
-        toast.success('Přihlášení úspěšné!');
-        navigate('/');
-      }
+      await login(email, password);
     } catch (error) {
-      toast.error('Nastala chyba při přihlašování.');
+      console.error('Chyba při přihlašování:', error);
     } finally {
       setLoading(false);
     }
+
+    console.log('Přihlášení úspěšné, přesměrování na domovskou stránku');
+    navigate('/');
   }
 
   return (

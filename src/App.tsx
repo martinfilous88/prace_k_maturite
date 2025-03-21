@@ -1,7 +1,9 @@
 /* @jsxImportSource react */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { testConnection } from './lib/supabase';
+import { initializeDatabase } from './lib/database';
 import { PrivateRoute } from './components/auth/PrivateRoute';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
@@ -31,6 +33,22 @@ const RouteLogger = () => {
 };
 
 function App() {
+  // Testujeme připojení k Supabase při startu aplikace
+  useEffect(() => {
+    // Testování připojení k Supabase
+    testConnection().then(isConnected => {
+      if (isConnected) {
+        console.log('Připojení k Supabase je funkční!');
+        // Inicializace databáze
+        initializeDatabase().catch(error => {
+          console.error('Chyba při inicializaci databáze:', error);
+        });
+      } else {
+        console.error('Problém s připojením k Supabase!');
+      }
+    });
+  }, []);
+
   return (
     <Router>
       <RouteLogger />

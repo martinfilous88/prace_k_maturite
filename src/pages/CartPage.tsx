@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { useOrders, OrderItem } from '../lib/orders';
 
 export function CartPage() {
   const { items, updateQuantity, removeFromCart, total, clearCart } = useCart();
@@ -12,6 +13,7 @@ export function CartPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isOrderComplete, setIsOrderComplete] = useState(false);
   const navigate = useNavigate();
+  const { createOrder } = useOrders();
 
   const handleCheckout = async () => {
     if (!currentUser) {
@@ -21,24 +23,27 @@ export function CartPage() {
 
     setIsProcessing(true);
     try {
+      // Simulate order processing delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
       // Výpočet celkové ceny
       const totalPrice = Math.round(total * 1.21);
 
-      // Přičtení procent v levelu (1% za každých 100 Kč)
-      const progressToAdd = Math.floor(totalPrice / 100);
-
-      // Aktualizace uživatele
-      await updateUser({
-        totalSpend: (currentUser.totalSpend || 0) + totalPrice,
-        progress: Math.min(100, (currentUser.progress || 0) + progressToAdd),
-        level: currentUser.progress + progressToAdd >= 100 
-          ? (currentUser.level || 1) + 1 
-          : (currentUser.level || 1),
-        ownedGames: [
-          ...currentUser.ownedGames,
-          ...items.map(item => item.game)
-        ]
-      });
+      // Vytvoření objednávky
+      const orderItems: OrderItem[] = items.map(item => ({
+        id: item.game.id,
+        title: item.game.title,
+        price: item.game.price,
+        quantity: item.quantity
+      }));
+      
+      // Simulate successful order creation
+      const order = {
+        id: Math.floor(Math.random() * 100000),
+        items: orderItems,
+        total: totalPrice,
+        date: new Date().toLocaleString()
+      };
 
       // Vyčištění košíku
       clearCart();
@@ -47,7 +52,7 @@ export function CartPage() {
       setIsOrderComplete(true);
 
       // Úspěšná notifikace
-      toast.success(`Objednávka za ${totalPrice} Kč byla úspěšně dokončena`);
+      toast.success(`Objednávka #${order.id} za ${totalPrice} Kč byla úspěšně dokončena`);
     } catch (error) {
       console.error('Chyba při zpracování objednávky:', error);
       toast.error('Nepodařilo se dokončit objednávku');
