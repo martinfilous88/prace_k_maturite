@@ -1,34 +1,31 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Game } from '../types/game';
 import { toast } from 'react-hot-toast';
 
-interface UserProfile extends User {
+interface UserProfile {
   id: string;
   username: string;
   email: string;
-  phone?: string;
-  age?: number;
-  totalSpend: number;
+  created_at: string;
+  updated_at: string;
+  total_spend: number;
   level: number;
   progress: number;
-  ownedGames: Game[];
-  wheelPrizes?: { 
-    result?: { 
-      type: string; 
-      value: string; 
-      description: string; 
-    }; 
-    remainingSpins: number; 
-    lastSpinTimestamp?: number;
-  };
+  owned_games: string[];
+  wheel_prizes: string[];
+  totalSpend: number;
+  ownedGames: string[];
+  app_metadata: any;
+  user_metadata: any;
+  aud: string;
 }
 
 interface AuthContextType {
   currentUser: UserProfile | null;
   loading: boolean;
-  signup: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, username: string) => Promise<any>;
   login: (email: string, password: string) => Promise<any>;
   logout: () => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
@@ -70,48 +67,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
   };
 
-  async function signup(email: string, password: string) {
-    console.log('Pokus o registraci uživatele:', email);
+  async function signup(email: string, password: string, username: string) {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username: email.split('@')[0], // Získáme uživatelské jméno z emailu
-          },
-        },
-      });
-      
-      console.log('Výsledek registrace:', data);
-      
+      const { data, error } = await supabase.auth.signUp({ email, password });
+
       if (error) {
-        console.error('Chyba při registraci:', error);
-        throw error;
+        console.error('Chyba při registraci:', error.message);
+        return null;
       }
+      
       
       // Pokud se uživatel úspěšně zaregistroval, vytvoříme profil
+
+      // Pokud se uživatel úspěšně zaregistroval, vytvoříme profil
       if (data.user) {
-        // Vytvoříme záznam v profiles tabulce
-        const { error: profileError } = await supabase
+        // Vytvoření profilu uživatele
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .upsert({
-            id: data.user.id,
-            username: email.split('@')[0],
-            email: email,
-            created_at: new Date().toISOString(),
-          });
-        
+          .insert([{ id: data.user.id, email, username }])
+          .single();
+
         if (profileError) {
-          console.error('Chyba při vytváření profilu:', profileError);
-          // Nezastavujeme registraci kvůli chybě profilu
+          console.error('Chyba při vytváření profilu:', profileError.message);
+          return null;
         }
+
+        console.log('Profil úspěšně vytvořen:', profile);
+        return data.user;
       }
     } catch (error) {
-      console.error('Nezachycená chyba při registraci:', error);
-      throw error;
+      console.error('Chyba při registraci:', error);
+      return null;
     }
-  }
+  };
 
   async function login(email: string, password: string) {
     try {
@@ -142,10 +130,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           userProfile = await fetchUserProfile(data.user.id);
         }
 
-        setCurrentUser({
-          ...data.user,
-          ...userProfile
-        });
+        if (userProfile) {
+          setCurrentUser({
+            ...userProfile,
+            totalSpend: userProfile.total_spend,
+            ownedGames: userProfile.owned_games,
+            app_metadata: data.user.app_metadata,
+            user_metadata: data.user.user_metadata,
+            aud: data.user.aud
+          });
+        } else {
+          console.error('Profil uživatele nebyl nalezen pro ID:', data.user.id);
+        }
         setLoading(false);
         toast.success('Přihlášení úspěšné');
       }
@@ -211,12 +207,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data: sessionData } = await supabase.auth.getSession();
       if (sessionData.session) {
         setCurrentUser({
-          ...signUpData.user,
+          id: signUpData.user.id,
           username,
           email,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
           total_spend: 0,
           level: 1,
-          progress: 0
+          progress: 0,
+          owned_games: [],
+          wheel_prizes: [],
+          totalSpend: 0,
+          ownedGames: [],
+          app_metadata: signUpData.user.app_metadata,
+          user_metadata: signUpData.user.user_metadata,
+          aud: signUpData.user.aud
         });
       } else {
         // If session isn't set, manually trigger login
@@ -230,12 +235,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: sessionData } = await supabase.auth.getSession();
         if (sessionData.session) {
           setCurrentUser({
-            ...signUpData.user,
+            id: signUpData.user.id,
             username,
             email,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
             total_spend: 0,
             level: 1,
-            progress: 0
+            progress: 0,
+            owned_games: [],
+            wheel_prizes: [],
+            totalSpend: 0,
+            ownedGames: [],
+            app_metadata: signUpData.user.app_metadata,
+            user_metadata: signUpData.user.user_metadata,
+            aud: signUpData.user.aud
           });
         }
       }
@@ -257,13 +271,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Mapování klíčů z camelCase na snake_case
       if (userData.username !== undefined) supabaseData.username = userData.username;
       if (userData.email !== undefined) supabaseData.email = userData.email;
-      if (userData.phone !== undefined) supabaseData.phone = userData.phone;
-      if (userData.age !== undefined) supabaseData.age = userData.age;
       if (userData.totalSpend !== undefined) supabaseData.total_spend = userData.totalSpend;
       if (userData.level !== undefined) supabaseData.level = userData.level;
       if (userData.progress !== undefined) supabaseData.progress = userData.progress;
       if (userData.ownedGames !== undefined) supabaseData.owned_games = userData.ownedGames;
-      if (userData.wheelPrizes !== undefined) supabaseData.wheel_prizes = userData.wheelPrizes;
 
       // Aktualizujeme data v Supabase
       const { error } = await supabase
@@ -340,17 +351,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function fetchUserProfile(userId: string) {
     try {
+      console.log('Hledám profil pro uživatele s ID:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('id, username, email, created_at, updated_at, total_spend, level, progress, owned_games, wheel_prizes')
         .eq('id', userId)
-        .single(); // Zajištění, že dotaz vrátí pouze jeden řádek
+        .maybeSingle();
 
       if (error) {
-        console.error('Chyba při načítání profilu:', error);
+        console.error('Chyba při načítání profilu:', error.message);
         return null;
       }
 
+      if (!data) {
+        console.log('Profil pro uživatele s ID nebyl nalezen, vytvářím nový profil:', userId);
+        const { data: newProfile, error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: userId,
+            username: 'Neznámý uživatel',
+            email: '',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            total_spend: 0,
+            level: 1,
+            progress: 0,
+            owned_games: [],
+            wheel_prizes: []
+          }])
+          .single();
+
+        if (profileError) {
+          console.error('Chyba při vytváření profilu:', profileError.message);
+          return null;
+        }
+
+        return newProfile;
+      }
+
+      console.log('Načtený profil:', data);
       return data;
     } catch (error) {
       console.error('Chyba při načítání profilu:', error);
@@ -358,85 +397,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        fetchUserProfile(session.user.id).then(userProfile => {
-          setCurrentUser(userProfile);
-        });
-      }
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        fetchUserProfile(session.user.id).then(userProfile => {
-          setCurrentUser(userProfile);
-        });
-      } else {
-        setCurrentUser(null);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleSessionChange = async (session: any) => {
-    setLoading(true);
-    if (session?.user) {
-      // Načteme profil z databáze
-      const userProfile = await fetchUserProfile(session.user.id);
-      
-      // Pokud profil neexistuje, vytvoříme ho
-      if (!userProfile) {
-        try {
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert({
-              id: session.user.id,
-              username: session.user.email?.split('@')[0] || 'user',
-              email: session.user.email,
-              total_spend: 0,
-              level: 1,
-              progress: 0,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
-            
-          if (insertError) {
-            console.error('Chyba při vytváření profilu:', insertError);
-          } else {
-            console.log('Profil byl úspěšně vytvořen');
-            // Znovu načteme profil
-            const newProfile = await fetchUserProfile(session.user.id);
-            setCurrentUser({
-              ...session.user,
-              ...newProfile,
-              totalSpend: newProfile?.total_spend || 0,
-              level: newProfile?.level || 1,
-              progress: newProfile?.progress || 0,
-              ownedGames: []
-            });
-          }
-        } catch (error) {
-          console.error('Nezachycená chyba při vytváření profilu:', error);
-        }
-      } else {
-        // Nastavíme uživatele
+  async function handleSessionChange(session: Session | null) {
+    if (session) {
+      console.log('Aktuální session:', session);
+      const user = await fetchUserProfile(session.user.id);
+      if (user) {
+        console.log('Profil uživatele načten:', user);
         setCurrentUser({
-          ...session.user,
-          ...userProfile,
-          totalSpend: userProfile.total_spend || 0,
-          level: userProfile.level || 1,
-          progress: userProfile.progress || 0,
-          ownedGames: userProfile.owned_games || []
+          ...user,
+          totalSpend: user.total_spend,
+          ownedGames: user.owned_games,
+          app_metadata: session.user.app_metadata,
+          user_metadata: session.user.user_metadata,
+          aud: session.user.aud
         });
+      } else {
+        console.error('Profil uživatele nebyl nalezen pro ID:', session.user.id);
       }
     } else {
+      console.log('Session byla ukončena');
       setCurrentUser(null);
     }
-    setLoading(false);
   };
 
   const isAdmin = () => {
@@ -470,6 +451,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAdmin,
     fetchUserProfile
   };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        fetchUserProfile(session.user.id).then(userProfile => {
+          if (userProfile) {
+            setCurrentUser({
+              ...userProfile,
+              totalSpend: userProfile.total_spend,
+              ownedGames: userProfile.owned_games,
+              app_metadata: session.user.app_metadata,
+              user_metadata: session.user.user_metadata,
+              aud: session.user.aud
+            });
+          } else {
+            console.error('Profil uživatele nebyl nalezen pro ID:', session.user.id);
+          }
+        });
+      }
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      handleSessionChange(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <AuthContext.Provider value={value}>

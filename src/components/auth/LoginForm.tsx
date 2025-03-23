@@ -8,7 +8,7 @@ export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, currentUser } = useAuth();
+  const { login, currentUser, signup, supabase } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,6 +33,20 @@ export function LoginForm() {
     console.log('Přihlášení úspěšné, přesměrování na domovskou stránku');
     navigate('/');
   }
+
+  const handleSignup = async (email: string, password: string, username: string) => {
+    const user = await signup(email, password, username);
+    if (user) {
+      // Automatické přihlášení po registraci
+      const { error } = await supabase.auth.signIn({ email, password });
+      if (error) {
+        console.error('Chyba při přihlášení:', error);
+      } else {
+        console.log('Uživatel úspěšně přihlášen');
+        navigate('/');
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
